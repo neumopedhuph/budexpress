@@ -521,11 +521,11 @@
             </ul>
             </div>`;
 
-            const episodeQuestion = (ageGroupText) => `¿<strong>2º episodio de crisis de broncoespasmo</strong> en los <strong>últimos 60 días</strong> (necesidad de <strong>administración continuada de rescate</strong> durante <strong>más de 48 horas</strong> durante el episodio previo)${ageGroupText}?`;
+            const episodeQuestion = (ageGroupText) => `¿<strong>2º episodio de crisis de broncoespasmo</strong> en los <strong>últimos 60 días</strong> (necesidad de <strong>administración continuada de rescate</strong> durante <strong>al menos 48 horas</strong> durante el episodio previo)${ageGroupText}?`;
 
             const episodeQuestion2to5 = `
             <div class="text-left text-base bg-white p-4 rounded border border-blue-100">
-                ¿<strong>2º episodio de crisis de broncoespasmo</strong> en los <strong>últimos 60 días</strong> (necesidad de <strong>administración continuada de rescate</strong> durante <strong>más de 48 horas</strong> durante el episodio previo)?
+                ¿<strong>2º episodio de crisis de broncoespasmo</strong> en los <strong>últimos 60 días</strong> (necesidad de <strong>administración continuada de rescate</strong> durante <strong>al menos 48 horas</strong> durante el episodio previo)?
             </div>
             <div class="flex justify-center items-center my-2 text-4xl font-black text-blue-800">+</div>
             <div class="text-left text-base bg-white p-4 rounded border border-blue-100">
@@ -642,7 +642,7 @@
         }
 
         function getRescueHtml() {
-            const salbutamolCommon = `<strong>Tratamiento de rescate</strong> (<strong>SOLO</strong> si síntomas de tos seca repetitiva, dificultad respiratoria o pitos en el pecho): <strong>SALBUTAMOL pMDI 100mcg</strong> (<strong>cartucho AZUL</strong>) con ${getDeviceName()}: 2-4 INHALACIONES cada 4-6-8 HORAS según dificultad respiratoria y hasta control por su pediatra. <strong>Si persiste dificultad respiratoria tras una 1ª tanda de 2-4 inhalaciones, se puede repetir esta dosis cada 20 minutos hasta un máximo de 3 veces. Si tras ello persiste dificultad respiratoria, acudir a su Centro de Salud o a Urgencias para valoración.</strong>`;
+            const salbutamolCommon = `<strong>Tratamiento de rescate</strong> (<strong>SOLO</strong> si síntomas de tos seca repetitiva, dificultad respiratoria o pitos en el pecho): <strong>SALBUTAMOL pMDI 100mcg</strong> (<strong>cartucho AZUL</strong>) con ${getDeviceName()}: 2-4 INHALACIONES cada 4-6-8 HORAS según dificultad respiratoria y hasta control por su pediatra. <strong>Si persiste dificultad respiratoria tras una 1ª tanda de 2-4 inhalaciones, se puede repetir esta dosis cada 20 minutos hasta un máximo de 3 veces. Si tras ello persiste dificultad respiratoria, o si la mejoría no se mantiene durante al menos 4 horas, acudir a su Centro de Salud o a Urgencias para valoración.</strong>`;
 
             // Determine device string based on forceMask or age (used for Symbicort special case)
             // 4-5 defaults to mouthpiece
@@ -651,14 +651,14 @@
                                  "cámara espaciadora y boquilla";
 
             if (state.age > 11 && state.finalOutcome === 'maintenance') {
-                return `<strong>Tratamiento de rescate</strong> (<strong>SOLO</strong> si síntomas de tos seca repetitiva, dificultad respiratoria o pitos en el pecho): <strong>SYMBICORT pMDI 160/4,5mcg</strong> (<strong>cartucho ROJO</strong>) con <strong>${deviceString}</strong>: 1-2 INHALACIONES cada 4-6-8 HORAS a demanda según dificultad respiratoria (administrar 2ª inhalación a los 15 minutos de la 1ª inhalación si persiste dificultad respiratoria). <strong>Máximo total</strong> en <strong>24 horas</strong> de <strong>12 inhalaciones</strong> de <strong>SYMBICORT TURBUHALER</strong> considerando rescate y mantenimiento (suelen ser suficientes <strong>3-4 administraciones diarias</strong> durante una <strong>crisis</strong>). <strong>Si persiste dificultad respiratoria a los 20 minutos de una tanda de 2 inhalaciones de SYMBICORT, administrar una tanda de 4 inhalaciones de SALBUTAMOL pMDI 100 mcg, que se podrá repetir a los 20 minutos si es necesario. Si tras ello persiste dificultad respiratoria, acudir a su Centro de Salud o a Urgencias para valoración.</strong>`;
+                return `<strong>Tratamiento de rescate</strong> (<strong>SOLO</strong> si síntomas de tos seca repetitiva, dificultad respiratoria o pitos en el pecho): <strong>SYMBICORT pMDI 160/4,5mcg</strong> (<strong>cartucho ROJO</strong>) con <strong>${deviceString}</strong>: 1-2 INHALACIONES cada 4-6-8 HORAS a demanda según dificultad respiratoria (administrar 2ª inhalación a los 15 minutos de la 1ª inhalación si persiste dificultad respiratoria). <strong>Máximo total</strong> en <strong>24 horas</strong> de <strong>12 inhalaciones</strong> de <strong>SYMBICORT TURBUHALER</strong> considerando rescate y mantenimiento (suelen ser suficientes <strong>3-4 administraciones diarias</strong> durante una <strong>crisis</strong>). <strong>Si persiste dificultad respiratoria a los 20 minutos de una tanda de 2 inhalaciones de SYMBICORT, administrar una tanda de 4 inhalaciones de SALBUTAMOL pMDI 100 mcg, que se podrá repetir a los 20 minutos si es necesario. Si tras ello persiste dificultad respiratoria, o si la mejoría no se mantiene durante al menos 4 horas, acudir a su Centro de Salud o a Urgencias para valoración.</strong>`;
             }
             return salbutamolCommon;
         }
 
         function getMaintenanceHtml() {
             // Moved durability text to the middle and reduced bolding
-            const durationText = `(<strong>TODOS LOS DÍAS</strong> durante al menos <strong>2 meses</strong> bajo control de su <strong>pediatra de centro de salud</strong>. Valorar escalar tratamiento o mantener durante más tiempo según evolución)`;
+            const durationText = `(<strong>TODOS LOS DÍAS</strong> durante al menos <strong>2 meses</strong> bajo control de su <strong>pediatra de centro de salud</strong>)`;
             const posology = `1 INHALACIÓN cada 12 horas.`;
             
             // Corrected Logic: Mask ONLY for ages 2-3 (or force override). 
