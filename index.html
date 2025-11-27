@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BudExpress - Generador de Pautas Asma Pediátrico</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Estilos para contenido copiable */
+        .copy-content ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 0.5em; }
+        .copy-content ol { list-style-type: decimal; padding-left: 1.5em; margin-bottom: 0.5em; }
+        .copy-content strong { font-weight: bold; }
+        .copy-content em { font-style: italic; }
+        .copy-content u { text-decoration: underline; }
+        .copy-content p { margin-bottom: 0.8em; }
+        
+        /* Animación para el toast de copiado */
+        #copyToast {
+            transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            transform: translateY(100%);
+            opacity: 0;
+        }
+        #copyToast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        /* Estilos para Modales */
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(2px);
+        }
+        
+        /* Utilidad para quitar subrayado en impresión si es necesario */
+        .no-underline-print {
+            text-decoration: none !important;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 py-8 px-4 shadow-sm relative z-20">
+        <div class="max-w-5xl mx-auto text-center">
+            <div class="flex flex-col md:flex-row justify-center items-center gap-4 mb-2">
+                <!-- Icono Personalizado: Inhalador Tipo Budesonida + Reloj -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 100 100" class="flex-shrink-0 filter drop-shadow-sm">
+                    <!-- Cartucho Metálico (Arriba) -->
+                    <rect x="35" y="5" width="30" height="25" rx="2" fill="#cbd5e1" stroke="#334155" stroke-width="2"/>
+                    <rect x="35" y="10" width="30" height="10" fill="#94a3b8" opacity="0.3"/> <!-- Brillo metálico -->
+
+                    <!-- Cuerpo Inhalador (Blanco L-Shape) -->
+                    <path d="M30 25 L30 75 Q 30 85 40 85 L 75 85 L 75 60 L 65 60 L 65 25 Z" fill="white" stroke="#334155" stroke-width="2"/>
+                    
+                    <!-- Tapón Azul (Abajo/Boquilla) -->
+                    <path d="M76 60 L 90 60 Q 92 60 92 62 L 92 83 Q 92 85 90 85 L 76 85 Z" fill="#1e40af" stroke="#1e3a8a" stroke-width="2"/>
+                    <rect x="74" y="60" width="4" height="25" fill="#1e40af"/> <!-- Conexión tapa -->
+
+                    <!-- Reloj superpuesto (Borde Azul) -->
+                    <circle cx="65" cy="45" r="18" fill="white" stroke="#1d4ed8" stroke-width="3"/>
+                    <path d="M65 45 L 65 38" stroke="#1e40af" stroke-width="2" stroke-linecap="round"/> <!-- Hora 12 -->
+                    <path d="M65 45 L 70 45" stroke="#1e40af" stroke-width="2" stroke-linecap="round"/> <!-- Minutero -->
+                </svg>
+                
+                <h1 class="text-4xl md:text-5xl font-extrabold text-blue-800 tracking-tight">BudExpress</h1>
+            </div>
+            <p class="text-slate-500 text-base md:text-lg font-medium max-w-3xl mx-auto mt-2">
+                Generador de pautas de inicio de tratamiento de mantenimiento para pacientes con broncoespasmo atendidos en urgencias pediátricas y hospitalización.
+            </p>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow py-8 px-4 relative z-10 flex flex-col items-center w-full">
+        
+        <!-- Progress Bar (EN LA PARTE SUPERIOR) -->
+        <div id="progressBarContainer" class="flex justify-between items-start w-full max-w-4xl mx-auto px-4 relative mb-12 scroll-mt-6">
+            <!-- Line -->
+            <div class="absolute top-4 left-8 right-8 h-1 bg-slate-200 -z-10 rounded"></div>
+            
+            <!-- Steps -->
+            <div class="step-indicator flex flex-col items-center w-1/4" id="ind-0">
+                <div class="circle w-9 h-9 rounded-full flex items-center justify-center font-bold text-base bg-blue-600 text-white transition-all duration-300 shadow-lg scale-110 border-4 border-slate-50">1</div>
+                <span class="text-xs md:text-sm mt-2 font-bold text-blue-700 text-center bg-slate-50 px-2 rounded">Edad</span>
+            </div>
+            <div class="step-indicator flex flex-col items-center w-1/4" id="ind-1">
+                <div class="circle w-9 h-9 rounded-full flex items-center justify-center font-bold text-base bg-slate-200 text-slate-400 transition-all duration-300 border-4 border-slate-50">2</div>
+                <span class="text-xs md:text-sm mt-2 font-medium text-slate-400 text-center bg-slate-50 px-2 rounded">Crisis actual</span>
+            </div>
+            <div class="step-indicator flex flex-col items-center w-1/4" id="ind-2">
+                <div class="circle w-9 h-9 rounded-full flex items-center justify-center font-bold text-base bg-slate-200 text-slate-400 transition-all duration-300 border-4 border-slate-50">3</div>
+                <span class="text-xs md:text-sm mt-2 font-medium text-slate-400 text-center bg-slate-50 px-2 rounded">Criterios para Tx de base</span>
+            </div>
+            <div class="step-indicator flex flex-col items-center w-1/4" id="ind-3">
+                <div class="circle w-9 h-9 rounded-full flex items-center justify-center font-bold text-base bg-slate-200 text-slate-400 transition-all duration-300 border-4 border-slate-50">4</div>
+                <span class="text-xs md:text-sm mt-2 font-medium text-slate-400 text-center bg-slate-50 px-2 rounded">Pauta final</span>
+            </div>
+        </div>
+
+        <!-- STEP 0: EDAD -->
+        <div id="step-0" class="w-full max-w-md bg-white p-8 rounded-xl shadow-lg border border-slate-200 text-center fade-in">
+            <h2 class="text-2xl font-bold text-slate-800 mb-6 flex items-center justify-center gap-2">
+                <!-- Icono Niño (Usuario) -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                Edad del paciente
+            </h2>
+            <div class="mb-8">
+                <input type="number" id="ageInput" placeholder="Años (2-17)" class="w-full text-center text-3xl p-4 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors font-bold text-blue-900" onkeypress="handleEnter(event)">
+                <div id="ageError" class="hidden mt-4 p-3 bg-red-50 text-red-600 text-sm rounded-md flex items-center justify-center gap-2 font-semibold border border-red-100">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    <span id="ageErrorText">Edad no contemplada en el protocolo de la web</span>
+                </div>
+            </div>
+            <button onclick="submitAge()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2 text-lg shadow-md">
+                Continuar 
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+        </div>
+
+        <!-- STEP 1: CRISIS -->
+        <div id="step-1" class="w-full max-w-2xl bg-white p-8 rounded-xl shadow-lg border border-slate-200 hidden fade-in">
+            <h2 class="text-2xl font-bold text-slate-800 mb-8 text-center flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/><circle cx="20" cy="10" r="2"/></svg>
+                ¿Cómo es la crisis actual?
+            </h2>
+            <div class="grid gap-4 mb-8">
+                <button onclick="selectCrisis('mild')" class="p-6 bg-green-50 border-2 border-green-200 hover:border-green-500 hover:bg-green-100 rounded-lg text-left transition-all duration-200 group shadow-sm hover:shadow-md">
+                    <span class="block font-bold text-green-800 text-xl group-hover:translate-x-1 transition-transform mb-1">Crisis Leve</span>
+                    <span class="text-base text-green-700">PS: 0-3 puntos.</span>
+                </button>
+                <button onclick="selectCrisis('moderate')" class="p-6 bg-amber-50 border-2 border-amber-200 hover:border-amber-500 hover:bg-amber-100 rounded-lg text-left transition-all duration-200 group shadow-sm hover:shadow-md">
+                    <span class="block font-bold text-amber-800 text-xl group-hover:translate-x-1 transition-transform mb-1">Crisis Moderada</span>
+                    <span class="text-base text-amber-700">PS: 4-6 puntos.</span>
+                </button>
+                <button onclick="selectCrisis('severe')" class="p-6 bg-red-50 border-2 border-red-200 hover:border-red-500 hover:bg-red-100 rounded-lg text-left transition-all duration-200 group shadow-sm hover:shadow-md">
+                    <span class="block font-bold text-red-800 text-xl group-hover:translate-x-1 transition-transform mb-1">Crisis Grave</span>
+                    <span class="text-base text-red-700">PS: 7-9 puntos y/o ingreso hospitalario.</span>
+                </button>
+            </div>
+            <button onclick="goBack()" class="w-full md:w-auto px-8 py-3 border border-slate-300 text-slate-600 hover:bg-slate-50 hover:text-slate-800 rounded-lg flex items-center justify-center gap-2 font-medium transition-colors mx-auto">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> Volver atrás
+            </button>
+        </div>
+
+        <!-- STEP 2: CRITERIA -->
+        <div id="step-2" class="w-full max-w-3xl bg-white p-8 rounded-xl shadow-lg border border-slate-200 hidden fade-in">
+            <h2 class="text-2xl font-bold text-slate-800 mb-6 text-center">Criterios de Inicio de Mantenimiento</h2>
+            <div class="bg-blue-50 p-8 rounded-lg border border-blue-100 mb-8 shadow-inner">
+                <div id="criteriaQuestion" class="text-xl font-medium text-blue-900 text-center leading-relaxed">
+                    <!-- Question injected by JS -->
+                </div>
+            </div>
+            <div class="flex gap-6 justify-center mb-8">
+                <button onclick="answerCriteria(false)" class="flex-1 max-w-[200px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-4 rounded-lg transition-colors text-lg border border-slate-300">
+                    NO
+                </button>
+                <button onclick="answerCriteria(true)" class="flex-1 max-w-[200px] bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-lg transition-colors shadow-md hover:shadow-lg text-lg border border-blue-700">
+                    SÍ
+                </button>
+            </div>
+            <button onclick="goBack()" class="w-full md:w-auto px-8 py-3 border border-slate-300 text-slate-600 hover:bg-slate-50 hover:text-slate-800 rounded-lg flex items-center justify-center gap-2 font-medium transition-colors mx-auto">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> Volver atrás
+            </button>
+        </div>
+
+        <!-- STEP 3: FINAL -->
+        <div id="step-3" class="w-full max-w-4xl hidden fade-in pb-10 mb-2">
+            <!-- Alert Header -->
+            <div id="finalAlert" class="p-5 mb-6 rounded-lg border-l-8 text-center font-bold text-xl shadow-sm">
+                <!-- Alert text injected by JS -->
+            </div>
+
+            <!-- Result Box -->
+            <div class="bg-white p-10 rounded-xl shadow-xl border border-slate-200 relative">
+                <div id="resultContent" class="copy-content font-serif text-slate-800 leading-relaxed text-base space-y-6" contenteditable="true">
+                    <!-- Generated Content injected by JS -->
+                </div>
+                
+                <!-- Actions -->
+                <div class="mt-10 flex flex-col md:flex-row justify-center gap-4 print:hidden pt-6 border-t border-slate-100 flex-wrap">
+                    <button onclick="goBack()" class="px-6 py-4 bg-white border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-50 font-medium flex items-center justify-center gap-2 shadow-sm order-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> Atrás
+                    </button>
+                    
+                    <button onclick="copyToClipboard()" class="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-md hover:shadow-lg font-bold transition-all flex items-center justify-center gap-2 transform hover:-translate-y-0.5 order-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+                        Copiar Pauta
+                    </button>
+
+                    <!-- Botón de Override Mascarilla (Inyectado dinámicamente si aplica) -->
+                    <button id="maskOverrideBtn" onclick="enableMaskOverride()" class="hidden px-6 py-4 bg-amber-500 hover:bg-amber-600 text-white rounded-lg shadow-md hover:shadow-lg font-bold transition-all flex items-center justify-center gap-2 transform hover:-translate-y-0.5 text-sm text-center order-3">
+                         <!-- Icono Mascarilla Serigrafiado Mejorado (Estilo LiteTouch/Anatómico) -->
+                         <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <!-- Conector tubular (Izquierda) -->
+                            <rect x="2" y="9" width="5" height="6" rx="1" stroke-width="2"/>
+                            <!-- Cuerpo mascarilla (forma anatómica más redondeada estilo imagen) -->
+                            <path d="M7 9 C 7 9, 9 4, 12 3 C 16 2, 20 4, 21 8 C 22 13, 21 16, 19 20 C 16 23, 10 22, 7 15 L 7 9 Z" />
+                            <!-- Reborde interno de silicona -->
+                            <path d="M11 5 C 14 4, 17 6, 18 9 C 19 14, 18 17, 16 19" stroke-width="1" stroke-opacity="0.7" stroke-dasharray="2 2"/>
+                         </svg>
+                        Mi paciente necesita mascarilla
+                    </button>
+                </div>
+            </div>
+
+            <div class="mt-8 flex justify-center print:hidden">
+                <button onclick="resetApp()" class="px-8 py-4 bg-slate-800 hover:bg-slate-900 text-white rounded-full shadow-lg hover:shadow-xl font-bold transition-all transform hover:-translate-y-1 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg> 
+                    Nuevo Paciente
+                </button>
+            </div>
+        </div>
+
+        <!-- Links Informativos (Justificación y Créditos) -->
+        <div class="w-full max-w-4xl mx-auto text-center mb-8 pt-4 border-t border-slate-200 print:hidden">
+            <button onclick="openModal('modalJustificacion')" class="text-sm text-slate-500 hover:text-slate-800 underline mx-2 transition-colors">Justificación de las Indicaciones</button>
+            <br>
+            <button onclick="openModal('modalCreditos')" class="text-sm text-slate-500 hover:text-slate-800 underline mx-2 mt-2 transition-colors">Créditos</button>
+            <p class="text-xs text-slate-400 mt-2">2025</p>
+        </div>
+
+    </main>
+
+    <!-- Banner flotante (Toast) -->
+    <div id="copyToast" class="fixed bottom-0 left-0 right-0 bg-green-600 text-white text-center py-4 font-bold text-lg shadow-2xl z-50">
+        Pauta copiada en el portapapeles
+    </div>
+
+    <!-- MODALES -->
+    
+    <!-- Modal Justificación -->
+    <div id="modalJustificacion" class="fixed inset-0 z-50 hidden">
+        <div class="modal-overlay absolute inset-0" onclick="closeModal('modalJustificacion')"></div>
+        <div class="bg-white w-11/12 md:w-3/4 max-w-2xl mx-auto mt-20 p-8 rounded-xl shadow-2xl relative z-10 max-h-[80vh] overflow-y-auto">
+            <button onclick="closeModal('modalJustificacion')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            <h3 class="text-xl font-bold text-blue-800 mb-4 border-b pb-2">Justificación de las Indicaciones</h3>
+            <div class="text-sm text-slate-700 space-y-4 leading-relaxed text-justify">
+                <p>Herramienta web basada en el protocolo de inicio de tratamiento de mantenimiento de pacientes con broncoespasmo atendidos en urgencias pediátricas y hospitalización pediátrica del Hospital Universitario Puerta de Hierro - Majadahonda, basado en el consenso de la sección especializada de neumología pediátrica del centro.</p>
+                <p><strong>- INDICACIONES EN HOSPITALIZACIÓN:</strong> las indicaciones de tratamiento para los niños de 6 años o más se basan en las principales recomendaciones de las guías de práctica clínica nacionales e internacionales más recientes a fecha de noviembre de 2025. Se excluyó a los lactantes menores de 2 años al ser pacientes más heterogéneos con una mayor frecuencia de infecciones virales de vías bajas con sibilancias, lo que podía dificultar la elección de iniciar tratamiento. Para los pacientes de 2-5 años, se tuvo en cuenta por consenso la agrupación reciente de crisis, la presencia de síntomas persistentes previos al ingreso, y el índice predictivo de asma para la indicación de tratamiento.</p>
+                <p><strong>- INDICACIONES EN URGENCIAS:</strong> De cara a no interferir con la labor de la pediatría de atención primaria, y de aumentar la precisión de los tratamientos pautados desde urgencias (donde la sobrecarga asistencial determina un menor tiempo para la adecuada valoración de los pacientes), se decidió por consenso hacer despistaje de los pacientes que acudieran por crisis moderadas habiendo presentado otra crisis reciente o síntomas persistentes en el pasado mes, con el fin de iniciar un tratamiento de mantenimiento eficaz en los mismos que reduzca el riesgo de presentar en las siguientes semanas nuevas crisis, y de que estas puedan ser graves y requerir ingreso. En los casos en los que no se cumplen estos criterios, se indica el seguimiento por el pediatra de atención primaria para valorar el inicio del tratamiento de mantenimiento. Para los niños de 2-5 años, se tuvo también en cuenta el índice predictivo de asma para valorar la indicación de tratamiento.</p>
+                <p class="text-xs italic mt-4 border-t pt-2"><strong>*SEGUIMIENTO:</strong> Ante la incapacidad para la continuidad asistencial desde urgencias y hospitalización, en todos los casos de tratamiento se indica el seguimiento por el pediatra de atención primaria para determinar una mayor extensión del tratamiento, su escalada o desescalada, así como la indicación de remitir al paciente a consulta de especialidad de neumología pediátrica en el caso de que no se logre su control desde el centro de salud.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Créditos -->
+    <div id="modalCreditos" class="fixed inset-0 z-50 hidden">
+        <div class="modal-overlay absolute inset-0" onclick="closeModal('modalCreditos')"></div>
+        <div class="bg-white w-11/12 max-w-md mx-auto mt-32 p-8 rounded-xl shadow-2xl relative z-10">
+            <button onclick="closeModal('modalCreditos')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            <h3 class="text-lg font-bold text-blue-800 mb-4 border-b pb-2">Créditos</h3>
+            <p class="text-sm text-slate-700 leading-relaxed text-center">
+                Creado por <strong>David Tejero Sánchez</strong>, neumólogo pediátrico en el Hospital Puerta de Hierro - Majadahonda, mediante Gemini 3 pro.<br><br>
+                <span class="font-bold text-red-600">Se prohíbe su copia, venta o modificación.</span>
+            </p>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // --- TEXT CONSTANTS ---
+        const QR_IMAGE_URL = "https://i.imgur.com/MwM2qfg.png";
+
+        const TECNICAS = {
+            MASK: `
+                <p class="font-bold underline mb-2">TÉCNICA CON CÁMARA ESPACIADORA + MASCARILLA</p>
+                <ol class="list-decimal pl-5 space-y-1">
+                <li><strong>Mantener</strong> al paciente <strong>sentado</strong> o de <strong>pie</strong> para facilitar una correcta <strong>expansión del tórax</strong>. Si es un niño pequeño, <strong>apoyar</strong> su <strong>cabeza</strong> sobre el <strong>brazo</strong> del cuidador.</li>
+                <li><strong>Retirar</strong> la <strong>tapa</strong> del inhalador y <strong>agitarlo</strong> <strong>antes</strong> de conectarlo a la cámara.</li>
+                <li><strong>Situar</strong> la <strong>mascarilla</strong> alrededor de la <strong>boca</strong> y de la <strong>nariz</strong> del paciente, manteniéndola <strong>sellada</strong> sobre la cara. Apretar el pulsador <strong>UNA VEZ</strong> con la <strong>cámara horizontal</strong> y el <strong>inhalador</strong> en <strong>vertical</strong>.</li>
+                <li><strong>Mantener</strong> la <strong>posición</strong> de la <strong>mascarilla</strong> mientras el paciente respira observando la movilidad de la válvula. Pueden ser válidas <strong>5 respiraciones</strong> o <strong>10 segundos</strong> respirando a volumen corriente.</li>
+                <li><strong>Repetir</strong> los pasos <strong>para cada dosis</strong> con intervalos de <strong>30-60 segundos</strong> entre dosis.</li>
+                <li><strong>Retirar</strong> el inhalador y <strong>cerrar</strong> el dispositivo con la <strong>tapa protectora</strong>.</li>
+                <li><strong>SOLO</strong> en el caso de haber administrado un corticoide inhalado: <strong>Limpiar</strong> la <strong>boca</strong> y la <strong>zona de contacto</strong> de la <strong>mascarilla</strong> con una <strong>gasa humedecida</strong> con agua, y <strong>ofrecer agua</strong> o <strong>lavar</strong> los <strong>dientes</strong> al terminar.</li>
+                </ol>
+                <div class="mt-4 flex flex-col items-center print:block page-break-inside-avoid">
+                    <p class="text-xs font-bold text-slate-500 mb-2">Vídeo de la técnica:</p>
+                    <p class="text-[10px] text-slate-400 mt-1 text-center select-all print:text-black">https://youtu.be/LXNziF_FG8Y?si=s4n6E4KCAcGwTtvz</p>
+                </div>
+            `,
+            MOUTHPIECE_MULTI: `
+                <p class="font-bold underline mb-2">TÉCNICA CON CÁMARA ESPACIADORA + BOQUILLA (Respiraciones múltiples)</p>
+                <ol class="list-decimal pl-5 space-y-1">
+                <li><strong>Retirar</strong> la <strong>tapa</strong> del inhalador y <strong>agitarlo</strong> antes de conectarlo a la cámara. <strong>Insertar</strong> el inhalador en el <strong>extremo</strong> de la <strong>cámara</strong>.</li>
+                <li><strong>Situar</strong> la <strong>boquilla</strong> en la <strong>boca</strong> del paciente, <strong>cerrando bien</strong> los <strong>labios</strong>.</li>
+                <li><strong>Apretar</strong> el <strong>pulsador UNA VEZ</strong> con la <strong>cámara horizontal</strong> y el <strong>inhalador vertical</strong>.</li>
+                <li>Realizar <strong>5 respiraciones LENTAS y PROFUNDAS</strong> comprobando que la <strong>válvula</strong> de la cámara se <strong>mueve</strong> con cada respiración.</li>
+                <li><strong>Repetir</strong> los <strong>pasos 1-4</strong> para <strong>cada dosis</strong> con intervalos de <strong>30-60 segundos</strong> entre dosis.</li>
+                <li><strong>Cerrar</strong> el dispositivo con la <strong>tapa protectora</strong>.</li>
+                <li><strong>SOLO</strong> en el caso de haber administrado un corticoide inhalado: <strong>Enjuagar</strong> la <strong>boca</strong> con agua o <strong>lavarse</strong> los <strong>dientes</strong> al terminar.</li>
+                </ol>
+                <div class="mt-4 flex flex-col items-center print:block page-break-inside-avoid">
+                    <p class="text-xs font-bold text-slate-500 mb-2">Vídeo de la técnica:</p>
+                    <p class="text-[10px] text-slate-400 mt-1 text-center select-all print:text-black">https://youtu.be/LXNziF_FG8Y?si=s4n6E4KCAcGwTtvz</p>
+                </div>
+            `,
+            MOUTHPIECE_SINGLE: `
+                <p class="font-bold underline mb-2">TÉCNICA CON CÁMARA ESPACIADORA + BOQUILLA (Respiración única + apnea posterior)</p>
+                <ol class="list-decimal pl-5 space-y-1">
+                <li><strong>Quitar</strong> la <strong>tapa</strong> de la pieza bucal y <strong>agitar</strong> el inhalador.</li>
+                <li><strong>Acoplar</strong> el <strong>inhalador</strong> a la <strong>cámara</strong>, colocándolo en <strong>posición vertical</strong>, con la <strong>boquilla</strong> en la <strong>parte inferior</strong>.</li>
+                <li><strong>Vaciar</strong> los pulmones <strong>LENTA Y PROFUNDAMENTE</strong> hasta donde sea cómodo.</li>
+                <li><strong>Colocar</strong> la <strong>boquilla</strong> de la <strong>cámara</strong> entre los <strong>labios</strong> y los <strong>dientes</strong> evitando que la <strong>lengua</strong> la <strong>obstruya</strong>.</li>
+                <li><strong>Presionar UNA VEZ</strong> el cartucho presurizado.</li>
+                <li>Comenzar a <strong>inhalar LENTA Y PROFUNDAMENTE</strong> a través de la <strong>boca</strong>.</li>
+                <li><strong>Retirar</strong> la <strong>boquilla</strong> de la <strong>boca</strong>.</li>
+                <li><strong>Aguantar</strong> la respiración <strong>10 segundos</strong> (como mínimo 5 segundos) y <strong>expulsar</strong> el aire <strong>lentamente</strong>.</li>
+                <li class="italic text-sm">Como <strong>alternativa</strong>, si <strong>no se logra coordinación</strong> o presenta una <strong>crisis importante</strong> con <strong>dificultad</strong> para <strong>aguantar</strong> la <strong>respiración</strong>, se puede considerar la posibilidad de efectuar <strong>4-5 respiraciones LENTAS seguidas</strong>.</li>
+                <li>Si se precisan <strong>nuevas dosis</strong> esperar un <strong>mínimo</strong> de <strong>30 segundos</strong>. <strong>Repetir pasos</strong> desde el <strong>punto 1</strong>.</li>
+                <li><strong>Cerrar</strong> el <strong>dispositivo</strong> con la <strong>tapa protectora</strong>.</li>
+                <li><strong>SOLO</strong> en el caso de haber administrado un corticoide inhalado: <strong>Enjuagar</strong> la <strong>boca</strong> con <strong>agua</strong> o <strong>lavarse</strong> los <strong>dientes</strong> al terminar.</li>
+                </ol>
+                <div class="mt-4 flex flex-col items-center print:block page-break-inside-avoid">
+                    <p class="text-xs font-bold text-slate-500 mb-2">Vídeo de la técnica:</p>
+                    <p class="text-[10px] text-slate-400 mt-1 text-center select-all print:text-black">https://youtu.be/LXNziF_FG8Y?si=s4n6E4KCAcGwTtvz</p>
+                </div>
+            `
+        };
+
+        // --- STATE ---
+        let state = {
+            step: 0,
+            age: null,
+            crisisType: null,
+            criteriaHistory: [],
+            finalOutcome: null,
+            forceMask: false // New flag for user override
+        };
+
+        // --- MODAL HANDLERS ---
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        // --- NAVIGATION & UI ---
+        
+        function handleEnter(event) {
+            if (event.key === 'Enter') {
+                submitAge();
+            }
+        }
+
+        function scrollToTop() {
+            const progressBar = document.getElementById('progressBarContainer');
+            if (progressBar) {
+                progressBar.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        function updateUI() {
+            document.querySelectorAll('[id^="step-"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`step-${state.step}`).classList.remove('hidden');
+            
+            for(let i=0; i<=3; i++) {
+                const ind = document.getElementById(`ind-${i}`);
+                const circle = ind.querySelector('.circle');
+                const label = ind.querySelector('span');
+                
+                circle.innerHTML = i+1;
+                label.classList.remove('text-blue-700', 'font-bold', 'text-green-600');
+                label.classList.add('text-slate-400', 'font-medium');
+                circle.classList.remove('bg-blue-600', 'text-white', 'scale-110', 'shadow-lg', 'bg-green-500', 'bg-slate-200', 'text-slate-400');
+                
+                if (i === state.step) {
+                    circle.classList.add('bg-blue-600', 'text-white', 'scale-110', 'shadow-lg');
+                    label.classList.remove('text-slate-400', 'font-medium');
+                    label.classList.add('text-blue-700', 'font-bold');
+                    if (i === 3) {
+                         circle.classList.remove('bg-blue-600');
+                         circle.classList.add('bg-green-500', 'text-white');
+                         circle.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+                         label.classList.add('text-green-600');
+                    }
+                } else if (i < state.step) {
+                    circle.classList.add('bg-green-500', 'text-white');
+                    circle.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+                    label.classList.remove('text-slate-400');
+                    label.classList.add('text-green-600', 'font-medium');
+                } else {
+                    circle.classList.add('bg-slate-200', 'text-slate-400');
+                }
+            }
+            
+            // Only scroll to progress bar on intermediate steps, top on final/start
+            if(state.step === 0) {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                const progressBar = document.getElementById('progressBarContainer');
+                if (progressBar) {
+                    progressBar.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }
+        }
+
+        function goBack() {
+            if (state.step === 3) {
+                if (state.crisisType === 'mild') {
+                    state.step = 1; 
+                } else {
+                    state.step = 2; 
+                    if (state.criteriaHistory.length > 0) {
+                         state.criteriaHistory.pop();
+                    }
+                    updateCriteriaQuestion(); 
+                }
+            } else if (state.step === 2) {
+                state.criteriaHistory = [];
+                state.step = 1;
+            } else {
+                state.step--;
+            }
+            updateUI();
+        }
+
+        function resetApp() {
+            state = {
+                step: 0,
+                age: null,
+                crisisType: null,
+                criteriaHistory: [],
+                finalOutcome: null,
+                forceMask: false
+            };
+            document.getElementById('ageInput').value = '';
+            updateUI();
+            
+            // Force scroll to absolute top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // --- LOGIC HANDLERS ---
+
+        function submitAge() {
+            const input = document.getElementById('ageInput');
+            const val = parseInt(input.value);
+            const errorDiv = document.getElementById('ageError');
+            
+            if (isNaN(val) || val < 2 || val > 17) {
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+            
+            errorDiv.classList.add('hidden');
+            state.age = val;
+            // Reset force mask when age changes logic
+            state.forceMask = false;
+            state.step = 1;
+            updateUI();
+        }
+
+        function selectCrisis(type) {
+            state.crisisType = type;
+            state.criteriaHistory = []; 
+
+            if (type === 'mild') {
+                state.finalOutcome = 'rescue_only';
+                state.step = 3;
+                renderResult();
+            } else if (type === 'moderate') {
+                state.step = 2;
+                updateCriteriaQuestion();
+            } else if (type === 'severe') {
+                if (state.age >= 6) {
+                    state.finalOutcome = 'maintenance';
+                    state.step = 3;
+                    renderResult();
+                } else {
+                    state.step = 2;
+                    updateCriteriaQuestion();
+                }
+            }
+            updateUI();
+        }
+
+        function updateCriteriaQuestion() {
+            const qIndex = state.criteriaHistory.length;
+            let qText = "";
+
+            // Lógica para mostrar la aclaración solo en niños de 2-5 años
+            const activityItem = (state.age >= 2 && state.age <= 5) 
+                ? "<li>¿<strong>Alguna limitación</strong> en la actividad física debido al asma? (¿Corre/juega menos que otros, se cansa fácilmente durante los paseos/juegos?)</li>"
+                : "<li>¿<strong>Alguna limitación</strong> en la actividad física debido al asma?</li>";
+
+            const persistentSymptomsText = `<strong>¿Síntomas intercrisis previos compatibles con mal control del asma?</strong><br><br>
+            <div class="text-left text-base bg-white p-4 rounded border border-blue-100">
+            <strong>Presencia en el último mes de al menos 2 de los siguientes:</strong>
+            <ul class="list-disc pl-5 mt-2 space-y-1">
+                <li>¿<strong>Síntomas diurnos</strong> de tos seca repetitiva, dificultad respiratoria y/o sibilancias <strong>> 2 veces a la semana</strong>?</li>
+                <li>¿<strong>Algún despertar nocturno</strong> por tos seca repetitiva, dificultad respiratoria y/o sibilancias?</li>
+                <li>¿<strong>Necesidad de rescate</strong> con salbutamol por estos síntomas <strong>>2 veces a la semana</strong>?</li>
+                ${activityItem}
+            </ul>
+            </div>`;
+
+            const episodeQuestion = (ageGroupText) => `¿<strong>2º episodio de crisis de broncoespasmo</strong> en los <strong>últimos 60 días</strong> (necesidad de <strong>administración continuada de rescate</strong> durante <strong>al menos 48 horas</strong> durante el episodio previo)${ageGroupText}?`;
+
+            const episodeQuestion2to5 = `
+            <div class="text-left text-base bg-white p-4 rounded border border-blue-100">
+                ¿<strong>2º episodio de crisis de broncoespasmo</strong> en los <strong>últimos 60 días</strong> (necesidad de <strong>administración continuada de rescate</strong> durante <strong>al menos 48 horas</strong> durante el episodio previo)?
+            </div>
+            <div class="flex justify-center items-center my-2 text-4xl font-black text-blue-800">+</div>
+            <div class="text-left text-base bg-white p-4 rounded border border-blue-100">
+            <strong>¿Cumple alguno de los siguientes?:</strong>
+            <ul class="list-disc pl-5 mt-2 space-y-1">
+                <li>Dermatitis atópica (>2 años).</li>
+                <li>Padre/madre con asma/alergia.</li>
+            </ul>
+            </div>`;
+
+            if (state.crisisType === 'moderate') {
+                if (qIndex === 0) {
+                    if (state.age >= 2 && state.age <= 5) {
+                        qText = episodeQuestion2to5;
+                    } else {
+                        qText = episodeQuestion("");
+                    }
+                } else if (qIndex === 1) {
+                    qText = persistentSymptomsText;
+                }
+            } else if (state.crisisType === 'severe') {
+                // Modificado: Lógica unificada con moderada para < 6 años
+                // Nota: Los > 6 años van directos a mantenimiento, por lo que este bloque solo aplica a 2-5 años.
+                if (qIndex === 0) {
+                     qText = episodeQuestion2to5;
+                } else if (qIndex === 1) {
+                     qText = persistentSymptomsText;
+                }
+            }
+
+            document.getElementById('criteriaQuestion').innerHTML = qText;
+        }
+
+        function answerCriteria(answer) {
+            state.criteriaHistory.push(answer);
+            const qIndex = state.criteriaHistory.length; 
+
+            let done = false;
+
+            if (state.crisisType === 'moderate') {
+                if (qIndex === 1) {
+                    if (answer === true) {
+                        state.finalOutcome = 'maintenance';
+                        done = true;
+                    }
+                } else if (qIndex === 2) {
+                    if (answer === true) state.finalOutcome = 'maintenance';
+                    else state.finalOutcome = 'rescue_only';
+                    done = true;
+                }
+            } else if (state.crisisType === 'severe') {
+                // Modificado: Estructura de respuestas igual a moderada para 2-5 años
+                if (qIndex === 1) {
+                    // Respuesta a Pregunta Compuesta (Episodio + Riesgo)
+                    if (answer === true) { 
+                        state.finalOutcome = 'maintenance'; 
+                        done = true; 
+                    }
+                } else if (qIndex === 2) {
+                    // Respuesta a Síntomas Persistentes
+                    if (answer === true) state.finalOutcome = 'maintenance';
+                    else state.finalOutcome = 'rescue_only';
+                    done = true; 
+                }
+            }
+
+            if (done) {
+                state.step = 3;
+                renderResult();
+                updateUI();
+            } else {
+                updateCriteriaQuestion();
+                
+                // Scroll to progress bar
+                const progressBar = document.getElementById('progressBarContainer');
+                if (progressBar) {
+                    progressBar.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }
+        }
+
+        // --- MASK OVERRIDE LOGIC ---
+
+        function enableMaskOverride() {
+            state.forceMask = true;
+            renderResult(); // Re-renders content with mask
+            
+            // Scroll to progress bar to show context
+            const progressBar = document.getElementById('progressBarContainer');
+            if (progressBar) {
+                progressBar.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        // --- CONTENT GENERATORS ---
+
+        function getTechniqueHtml() {
+            // If force mask is active, return MASK technique regardless of age > 3
+            if (state.forceMask) return TECNICAS.MASK;
+
+            // Default Logic
+            if (state.age >= 2 && state.age <= 3) return TECNICAS.MASK;
+            if (state.age >= 4 && state.age <= 8) return TECNICAS.MOUTHPIECE_MULTI;
+            return TECNICAS.MOUTHPIECE_SINGLE;
+        }
+
+        function getDeviceName() {
+            // If force mask is active, return mask device text
+            if (state.forceMask) return 'cámara espaciadora y mascarilla';
+
+            // 4-5 now defaults to mouthpiece as requested
+            if (state.age >= 2 && state.age <= 3) return 'cámara espaciadora y mascarilla';
+            return 'cámara espaciadora y boquilla';
+        }
+
+        function getRescueHtml() {
+            const salbutamolCommon = `<strong>Tratamiento de rescate</strong> (<strong>SOLO</strong> si síntomas de tos seca repetitiva, dificultad respiratoria o pitos en el pecho): <strong>SALBUTAMOL pMDI 100mcg</strong> (<strong>cartucho AZUL</strong>) con ${getDeviceName()}: 2-4 INHALACIONES cada 4-6-8 HORAS según dificultad respiratoria y hasta control por su pediatra. <strong>Si persiste dificultad respiratoria tras una 1ª tanda de 2-4 inhalaciones, se puede repetir esta dosis cada 20 minutos hasta un máximo de 3 veces. Si tras ello persiste dificultad respiratoria, o si la mejoría no se mantiene durante al menos 4 horas, acudir a su Centro de Salud o a Urgencias para valoración.</strong>`;
+
+            // Determine device string based on forceMask or age (used for Symbicort special case)
+            // 4-5 defaults to mouthpiece
+            const deviceString = (state.forceMask || (state.age >= 2 && state.age <= 3)) ? 
+                                 "cámara espaciadora y mascarilla" : 
+                                 "cámara espaciadora y boquilla";
+
+            if (state.age > 11 && state.finalOutcome === 'maintenance') {
+                return `<strong>Tratamiento de rescate</strong> (<strong>SOLO</strong> si síntomas de tos seca repetitiva, dificultad respiratoria o pitos en el pecho): <strong>SYMBICORT pMDI 160/4,5mcg</strong> (<strong>cartucho ROJO</strong>) con <strong>${deviceString}</strong>: 1-2 INHALACIONES cada 4-6-8 HORAS a demanda según dificultad respiratoria (administrar 2ª inhalación a los 15 minutos de la 1ª inhalación si persiste dificultad respiratoria). <strong>Máximo total</strong> en <strong>24 horas</strong> de <strong>12 inhalaciones</strong> de <strong>SYMBICORT TURBUHALER</strong> considerando rescate y mantenimiento (suelen ser suficientes <strong>3-4 administraciones diarias</strong> durante una <strong>crisis</strong>). <strong>Si persiste dificultad respiratoria a los 20 minutos de una tanda de 2 inhalaciones de SYMBICORT, administrar una tanda de 4 inhalaciones de SALBUTAMOL pMDI 100 mcg, que se podrá repetir a los 20 minutos si es necesario. Si tras ello persiste dificultad respiratoria, o si la mejoría no se mantiene durante al menos 4 horas, acudir a su Centro de Salud o a Urgencias para valoración.</strong>`;
+            }
+            return salbutamolCommon;
+        }
+
+        function getMaintenanceHtml() {
+            // Moved durability text to the middle and reduced bolding
+            const durationText = `(<strong>TODOS LOS DÍAS</strong> durante al menos <strong>2 meses</strong> bajo control de su <strong>pediatra de centro de salud</strong>)`;
+            const posology = `1 INHALACIÓN cada 12 horas.`;
+            
+            // Logic to determine if mask is used (by age or forced override)
+            const isMask = (state.forceMask || (state.age >= 2 && state.age <= 3));
+            
+            const deviceString = isMask ? 
+                                 "cámara espaciadora y mascarilla" : 
+                                 "cámara espaciadora y boquilla";
+            
+            // Hygiene instruction based on device type
+            const hygieneText = isMask ? 
+                                "Limpiar la boca y la zona de contacto de la mascarilla con una gasa humedecida con agua, y ofrecer agua o lavar los dientes al terminar." : 
+                                "Enjuagar la boca con agua o lavarse los dientes al terminar.";
+            
+            // Bold the device string for Symbicort as requested
+            const deviceStringBold = `<strong>${deviceString}</strong>`;
+
+            let treatmentText = '';
+
+            if (state.age >= 2 && state.age <= 5) {
+                // Corrección: Si es crisis grave en 2-5 años, la dosis es 200 mcg. Si es moderada, 100 mcg.
+                const dose = (state.crisisType === 'severe') ? '200 mcg' : '100 mcg';
+                treatmentText = `<strong>Tratamiento de mantenimiento</strong> ${durationText}: <strong>BUDESONIDA pMDI ${dose}</strong> (<strong>cartucho BLANCO</strong>) con ${deviceString}: ${posology}`;
+            } else if (state.age >= 6 && state.age <= 11) {
+                treatmentText = `<strong>Tratamiento de mantenimiento</strong> ${durationText}: <strong>BUDESONIDA pMDI 200 mcg</strong> (<strong>cartucho BLANCO</strong>) con ${deviceString}: ${posology}`;
+            } else if (state.age > 11) {
+                treatmentText = `<strong>Tratamiento de mantenimiento</strong> ${durationText}: <strong>SYMBICORT pMDI 160/4.5 mcg</strong> (<strong>cartucho ROJO</strong>) con ${deviceStringBold}: ${posology}`;
+            }
+
+            if (treatmentText) {
+                return `${treatmentText} ${hygieneText}`;
+            }
+            return '';
+        }
+
+        function getRecommendationsHtml() {
+            let recoHtml = `<ul class="list-disc pl-5 space-y-1">
+                <li>Llevará <strong>siempre consigo</strong> la <strong>medicación de rescate</strong> y su <strong>cámara espaciadora</strong> (también cuando acuda a urgencias o a su pediatra por clínica de broncoespasmo).</li>
+                <li><strong>Mantenimiento y limpieza de medicación:</strong>
+                    <ul class="list-circle pl-5 mt-1">
+                    <li><strong>Cebado del inhalador</strong>: Realizar 2-3 pulsaciones al aire con el cartucho acoplado a la cámara con el <strong>primer uso</strong> y en el caso de que <strong>no se haya utilizado</strong> el cartucho durante <strong>más de una semana</strong> (evitar que el aerosol contacte con otras personas).</li>
+                    <li><strong>Lavar la cámara espaciadora una vez a la semana</strong> con agua y detergente suave, dejar <strong>secar al aire</strong> sin frotar (el frotamiento aumenta la carga electrostática de la cámara y reduce la eficacia de la administración de la medicación).</li>
+                    <li><strong>Reemplazar la cámara al año de uso</strong>.</li>
+                    </ul>
+                </li>`;
+
+            if (state.age > 11) {
+                 recoHtml += `<li><strong>EVITAR TABACO Y VAPEO</strong>, tanto <strong>activo como pasivo</strong>. No acudir a <strong>locales con humo</strong>.</li>`;
+            } else {
+                 recoHtml += `<li><strong>NO FUMARÁ NI VAPEARÁ</strong> en <strong>presencia del paciente</strong>, ni en su <strong>entorno</strong>. No acudirá con el paciente a <strong>locales con humo</strong>.</li>`;
+            }
+
+            recoHtml += `<li>Se recomienda <strong>vacunación antigripal anual</strong> en su centro de salud.</li>`;
+
+            if (state.finalOutcome === 'rescue_only') {
+                recoHtml += `<li class="mt-2"><strong>Control por pediatra de su centro de salud</strong>, valorar <strong>inicio de tratamiento de mantenimiento</strong> según evolución.</li>`;
+            }
+
+            recoHtml += `</ul>`;
+            return recoHtml;
+        }
+
+        function renderResult() {
+            const isMaintenance = state.finalOutcome === 'maintenance';
+            const alertBox = document.getElementById('finalAlert');
+            const contentBox = document.getElementById('resultContent');
+            const maskOverrideBtn = document.getElementById('maskOverrideBtn');
+
+            // Show/Hide Mask Override Button
+            // Show only if age >= 4 (as age 4+ now uses mouthpiece by default) AND mask isn't already forced/active
+            if (state.age >= 4 && !state.forceMask) {
+                maskOverrideBtn.classList.remove('hidden');
+            } else {
+                maskOverrideBtn.classList.add('hidden');
+            }
+
+            // 1. Header Alert
+            if (isMaintenance) {
+                alertBox.className = "p-5 mb-6 rounded-lg border-l-8 text-center font-bold text-xl shadow-sm bg-blue-100 text-blue-900 border-blue-600";
+                alertBox.innerText = "Iniciar tratamiento de mantenimiento";
+            } else {
+                alertBox.className = "p-5 mb-6 rounded-lg border-l-8 text-center font-bold text-xl shadow-sm bg-green-100 text-green-900 border-green-600";
+                alertBox.innerText = "Control por pediatra de su centro de salud, valorar inicio de tratamiento de mantenimiento según evolución";
+            }
+
+            // 2. Build Content
+            let html = '';
+            
+            html += `<p>${getRescueHtml()}</p>`;
+
+            if (isMaintenance) {
+                html += `<hr class="my-6 border-slate-300"><p>${getMaintenanceHtml()}</p>`;
+            }
+
+            html += `<div class="mt-8 pt-6 border-t-2 border-slate-200 bg-slate-50 p-6 rounded-lg text-sm border border-slate-100 shadow-sm">${getTechniqueHtml()}</div>`;
+
+            html += `<div class="mt-8 pt-4 border-t border-slate-200 text-sm">
+                     <p class="font-bold underline mb-2 text-slate-700 text-base">RECOMENDACIONES</p>
+                     ${getRecommendationsHtml()}
+                     </div>`;
+
+            contentBox.innerHTML = html;
+        }
+
+        function copyToClipboard() {
+            const range = document.createRange();
+            range.selectNode(document.getElementById('resultContent'));
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            document.execCommand('copy');
+            window.getSelection().removeAllRanges();
+            
+            const toast = document.getElementById('copyToast');
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 5000);
+        }
+
+    </script>
+</body>
+</html>
